@@ -47,7 +47,8 @@
   users.users."bedwards" = {
     isNormalUser = true;
     description = "Brian Edwards";
-    extraGroups = [ "networkmanager" "wheel" ];
+    extraGroups = [ "networkmanager" "wheel" "docker"];
+    shell = pkgs.fish;
     packages = with pkgs; [];
     openssh.authorizedKeys.keys = [
       "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQC+HMVk2PGXbQjq8TgC55QQtzFTgP/sy8SjtWMIrPfg8HLUHXNWh+7homZhQrtNq+f+SeNXfYCHitONrXh4yQOPtFEkmLkkn9RhU2yg52ilJV9hmvnGUg35gUReHabgHZEUjON8c6nm524H25wrIQ6uNoQQvptnB8K1w51C5/Z+CQiinx5IrGBAGgDBAvEXWKjfuRShUU9lcQZgA6fsJwRBu1Pox3dJAoFMsgV961QwgMVhJ9YJeBA92zGS1OifknpVnSNsmcQJNuxwKgEiLhietMPj+bjf/JT5W+P1uPHdZg+ZH/GEKhp6hFBgRcKGyGYkT9Q/oCGi7Skvq1sCOx/33RfEC1rMmPvsVoFSBl7TCo4E7B+IMl/9jnR/aNrOZ++otFzgNrFM0ZdzrXRyuU+C7TKk2Z8XRdE7HWdS+iiGWTG+BXLUzpdIb8Ue3eL7U/pJZT36mR90CMf1CB5o2M9bOdS1vZLE5RzflnejGalOicphSXFLyCfUL1A5sJxuF8q209Pu1ruqPM/8X4tFoyNLYhWztXC3onAsSx5b3CB3ZytaSR3MAM6lcqIniHW/nfi3zVrDvgXr/4K1bth72cHbXD3Fe8ZeZ9JKY67CmWpboVsOnBn/icZDGMbh6kTaChTMr9IvuF/6vCox4oOGgEMh83iiJDxC6NgomB41bGroTw=="
@@ -60,6 +61,8 @@
   users.users.ansible = {
     isNormalUser = true;
     description = "Ansible automation";
+    extraGroups = [ "docker"];
+    shell = pkgs.fish;
     openssh.authorizedKeys.keys = [
       "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQC+HMVk2PGXbQjq8TgC55QQtzFTgP/sy8SjtWMIrPfg8HLUHXNWh+7homZhQrtNq+f+SeNXfYCHitONrXh4yQOPtFEkmLkkn9RhU2yg52ilJV9hmvnGUg35gUReHabgHZEUjON8c6nm524H25wrIQ6uNoQQvptnB8K1w51C5/Z+CQiinx5IrGBAGgDBAvEXWKjfuRShUU9lcQZgA6fsJwRBu1Pox3dJAoFMsgV961QwgMVhJ9YJeBA92zGS1OifknpVnSNsmcQJNuxwKgEiLhietMPj+bjf/JT5W+P1uPHdZg+ZH/GEKhp6hFBgRcKGyGYkT9Q/oCGi7Skvq1sCOx/33RfEC1rMmPvsVoFSBl7TCo4E7B+IMl/9jnR/aNrOZ++otFzgNrFM0ZdzrXRyuU+C7TKk2Z8XRdE7HWdS+iiGWTG+BXLUzpdIb8Ue3eL7U/pJZT36mR90CMf1CB5o2M9bOdS1vZLE5RzflnejGalOicphSXFLyCfUL1A5sJxuF8q209Pu1ruqPM/8X4tFoyNLYhWztXC3onAsSx5b3CB3ZytaSR3MAM6lcqIniHW/nfi3zVrDvgXr/4K1bth72cHbXD3Fe8ZeZ9JKY67CmWpboVsOnBn/icZDGMbh6kTaChTMr9IvuF/6vCox4oOGgEMh83iiJDxC6NgomB41bGroTw=="
     ];
@@ -80,6 +83,7 @@
     python3
     vim # Do not forget to add an editor to edit configuration.nix! The Nano editor is also installed by default.
     wget
+    fish
   ];
 
   # Some programs need SUID wrappers, can be configured further or are
@@ -96,7 +100,13 @@
   services.openssh = {
    enable = true;
    openFirewall = true;
+      settings = {
+      PasswordAuthentication = false;
+      PermitRootLogin = "no";
+    };
   };
+
+  virtualisation.docker.enable = true;
 
   # Open ports in the firewall.
   # networking.firewall.allowedTCPPorts = [ ... ];
