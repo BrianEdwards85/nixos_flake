@@ -43,6 +43,7 @@
     variant = "";
   };
 
+  programs.fish.enable = true;
   # Define a user account. Don't forget to set a password with ‘passwd’.
   users.users."bedwards" = {
     isNormalUser = true;
@@ -100,7 +101,7 @@
   services.openssh = {
    enable = true;
    openFirewall = true;
-      settings = {
+   settings = {
       PasswordAuthentication = false;
       PermitRootLogin = "no";
     };
