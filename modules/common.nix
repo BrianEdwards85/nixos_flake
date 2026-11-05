@@ -2,7 +2,7 @@
 # your system. Help is available in the configuration.nix(5) man page, on
 # https://search.nixos.org/options and in the NixOS manual (`nixos-help`).
 
-{ config, pkgs, ... }:
+{ config, pkgs, inputs, ... }:
 
 {
   # Use the systemd-boot EFI boot loader.
@@ -49,9 +49,25 @@
     description = "Brian Edwards";
     extraGroups = [ "networkmanager" "wheel" ];
     packages = with pkgs; [];
+    openssh.authorizedKeys.keys = [
+      "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQC+HMVk2PGXbQjq8TgC55QQtzFTgP/sy8SjtWMIrPfg8HLUHXNWh+7homZhQrtNq+f+SeNXfYCHitONrXh4yQOPtFEkmLkkn9RhU2yg52ilJV9hmvnGUg35gUReHabgHZEUjON8c6nm524H25wrIQ6uNoQQvptnB8K1w51C5/Z+CQiinx5IrGBAGgDBAvEXWKjfuRShUU9lcQZgA6fsJwRBu1Pox3dJAoFMsgV961QwgMVhJ9YJeBA92zGS1OifknpVnSNsmcQJNuxwKgEiLhietMPj+bjf/JT5W+P1uPHdZg+ZH/GEKhp6hFBgRcKGyGYkT9Q/oCGi7Skvq1sCOx/33RfEC1rMmPvsVoFSBl7TCo4E7B+IMl/9jnR/aNrOZ++otFzgNrFM0ZdzrXRyuU+C7TKk2Z8XRdE7HWdS+iiGWTG+BXLUzpdIb8Ue3eL7U/pJZT36mR90CMf1CB5o2M9bOdS1vZLE5RzflnejGalOicphSXFLyCfUL1A5sJxuF8q209Pu1ruqPM/8X4tFoyNLYhWztXC3onAsSx5b3CB3ZytaSR3MAM6lcqIniHW/nfi3zVrDvgXr/4K1bth72cHbXD3Fe8ZeZ9JKY67CmWpboVsOnBn/icZDGMbh6kTaChTMr9IvuF/6vCox4oOGgEMh83iiJDxC6NgomB41bGroTw=="
+    ];
   };
 
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
+
+  # Automation user for Ansible: key-only SSH login, passwordless sudo.
+  users.users.ansible = {
+    isNormalUser = true;
+    description = "Ansible automation";
+    openssh.authorizedKeys.keys = [
+      "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQC+HMVk2PGXbQjq8TgC55QQtzFTgP/sy8SjtWMIrPfg8HLUHXNWh+7homZhQrtNq+f+SeNXfYCHitONrXh4yQOPtFEkmLkkn9RhU2yg52ilJV9hmvnGUg35gUReHabgHZEUjON8c6nm524H25wrIQ6uNoQQvptnB8K1w51C5/Z+CQiinx5IrGBAGgDBAvEXWKjfuRShUU9lcQZgA6fsJwRBu1Pox3dJAoFMsgV961QwgMVhJ9YJeBA92zGS1OifknpVnSNsmcQJNuxwKgEiLhietMPj+bjf/JT5W+P1uPHdZg+ZH/GEKhp6hFBgRcKGyGYkT9Q/oCGi7Skvq1sCOx/33RfEC1rMmPvsVoFSBl7TCo4E7B+IMl/9jnR/aNrOZ++otFzgNrFM0ZdzrXRyuU+C7TKk2Z8XRdE7HWdS+iiGWTG+BXLUzpdIb8Ue3eL7U/pJZT36mR90CMf1CB5o2M9bOdS1vZLE5RzflnejGalOicphSXFLyCfUL1A5sJxuF8q209Pu1ruqPM/8X4tFoyNLYhWztXC3onAsSx5b3CB3ZytaSR3MAM6lcqIniHW/nfi3zVrDvgXr/4K1bth72cHbXD3Fe8ZeZ9JKY67CmWpboVsOnBn/icZDGMbh6kTaChTMr9IvuF/6vCox4oOGgEMh83iiJDxC6NgomB41bGroTw=="
+    ];
+  };
+  security.sudo.extraRules = [{
+    users = [ "ansible" ];
+    commands = [{ command = "ALL"; options = [ "NOPASSWD" ]; }];
+  }];
 
   # Allow unfree packages
   nixpkgs.config.allowUnfree = true;
@@ -60,6 +76,8 @@
   # You can use https://search.nixos.org/ to find more packages (and options).
   environment.systemPackages = with pkgs; [
     git
+    inputs.home-manager.packages.${pkgs.stdenv.hostPlatform.system}.default
+    python3
     vim # Do not forget to add an editor to edit configuration.nix! The Nano editor is also installed by default.
     wget
   ];

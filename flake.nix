@@ -3,6 +3,12 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
+
+    # Standalone home-manager: users own their configs in ~/.config/home-manager.
+    home-manager = {
+      url = "github:nix-community/home-manager/release-26.05";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs = { self, nixpkgs, ... }@inputs:
