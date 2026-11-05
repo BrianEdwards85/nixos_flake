@@ -8,6 +8,8 @@
   # Use the systemd-boot EFI boot loader.
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
+  # Keep the boot partition from filling up with old generations
+  boot.loader.systemd-boot.configurationLimit = 10;
 
   # networking.hostName is set per host by flake.nix
   # networking.wireless.enable = true;  # Enables wireless support via wpa_supplicant.
@@ -62,8 +64,9 @@
   users.users.ansible = {
     isNormalUser = true;
     description = "Ansible automation";
-    extraGroups = [ "docker"];
-    shell = pkgs.fish;
+    # POSIX login shell: SSH runs Ansible's commands through it, and fish parses them differently.
+    # No docker group: passwordless sudo already grants root.
+    shell = pkgs.bashInteractive;
     openssh.authorizedKeys.keys = [
       "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQC+HMVk2PGXbQjq8TgC55QQtzFTgP/sy8SjtWMIrPfg8HLUHXNWh+7homZhQrtNq+f+SeNXfYCHitONrXh4yQOPtFEkmLkkn9RhU2yg52ilJV9hmvnGUg35gUReHabgHZEUjON8c6nm524H25wrIQ6uNoQQvptnB8K1w51C5/Z+CQiinx5IrGBAGgDBAvEXWKjfuRShUU9lcQZgA6fsJwRBu1Pox3dJAoFMsgV961QwgMVhJ9YJeBA92zGS1OifknpVnSNsmcQJNuxwKgEiLhietMPj+bjf/JT5W+P1uPHdZg+ZH/GEKhp6hFBgRcKGyGYkT9Q/oCGi7Skvq1sCOx/33RfEC1rMmPvsVoFSBl7TCo4E7B+IMl/9jnR/aNrOZ++otFzgNrFM0ZdzrXRyuU+C7TKk2Z8XRdE7HWdS+iiGWTG+BXLUzpdIb8Ue3eL7U/pJZT36mR90CMf1CB5o2M9bOdS1vZLE5RzflnejGalOicphSXFLyCfUL1A5sJxuF8q209Pu1ruqPM/8X4tFoyNLYhWztXC3onAsSx5b3CB3ZytaSR3MAM6lcqIniHW/nfi3zVrDvgXr/4K1bth72cHbXD3Fe8ZeZ9JKY67CmWpboVsOnBn/icZDGMbh6kTaChTMr9IvuF/6vCox4oOGgEMh83iiJDxC6NgomB41bGroTw=="
     ];
@@ -82,6 +85,7 @@
     git
     inputs.home-manager.packages.${pkgs.stdenv.hostPlatform.system}.default
     python3
+    rsync # lets Ansible push the flake directory efficiently
     vim # Do not forget to add an editor to edit configuration.nix! The Nano editor is also installed by default.
     wget
     fish
@@ -103,11 +107,24 @@
    openFirewall = true;
    settings = {
       PasswordAuthentication = false;
+      # With PAM on, keyboard-interactive can still accept a password
+      KbdInteractiveAuthentication = false;
       PermitRootLogin = "no";
     };
   };
 
   virtualisation.docker.enable = true;
+
+  # IPv6 is not used
+  networking.enableIPv6 = false;
+
+  # Free old generations between the monthly rebuilds. 45 days keeps a rollback target
+  # for at least a full monthly cycle.
+  nix.gc = {
+    automatic = true;
+    dates = "weekly";
+    options = "--delete-older-than 45d";
+  };
 
   # Open ports in the firewall.
   # networking.firewall.allowedTCPPorts = [ ... ];
