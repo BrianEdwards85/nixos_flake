@@ -1,8 +1,9 @@
+# Settings for this server only. Shared settings live in ../../modules.
 { ... }:
 
 {
   imports = [ ./hardware-configuration.nix ];
 
-  # Host-specific settings go here. Do NOT change stateVersion after install.
+  # Set once at install. Do NOT change it afterwards.
   system.stateVersion = "26.05";
 }

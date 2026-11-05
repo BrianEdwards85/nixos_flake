@@ -13,7 +13,7 @@
 
   outputs = { self, nixpkgs, ... }@inputs:
     let
-      # Build a host from hosts/<name>/ plus the shared modules.
+      # A server is the shared modules plus everything in hosts/<name>/.
       mkHost = name: nixpkgs.lib.nixosSystem {
         specialArgs = { inherit inputs; };
         modules = [
@@ -24,10 +24,11 @@
       };
     in
     {
-      nixosModules.common = ./modules/common.nix;
+      # modules/default.nix imports one file per topic
+      nixosModules.common = ./modules;
 
-      # Add a new server: create hosts/<name>/{default.nix,hardware-configuration.nix}
-      # and append <name> to this list.
+      # To add a server: create hosts/<name>/{default.nix,hardware-configuration.nix}
+      # and add <name> to this list.
       nixosConfigurations = nixpkgs.lib.genAttrs [ "nixos" ] mkHost;
     };
 }
