@@ -22,7 +22,7 @@ in
     openssh.authorizedKeys.keys = adminKeys;
   };
 
-  # Used by Ansible: key-only login, passwordless sudo.
+  # Used by Ansible: key-only login.
   users.users.ansible = {
     isNormalUser = true;
     description = "Ansible automation";
@@ -32,9 +32,13 @@ in
     openssh.authorizedKeys.keys = adminKeys;
   };
 
+  # bedwards is key-only (no password), so sudo needs NOPASSWD to be usable.
   security.sudo.extraRules = [
     {
-      users = [ "ansible" ];
+      users = [
+        "ansible"
+        "bedwards"
+      ];
       commands = [
         {
           command = "ALL";

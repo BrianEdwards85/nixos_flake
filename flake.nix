@@ -9,6 +9,12 @@
       url = "github:nix-community/home-manager/release-26.05";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    # Disk partitioning for nixos-anywhere installs.
+    disko = {
+      url = "github:nix-community/disko";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
@@ -41,7 +47,11 @@
 
       # To add a server: create hosts/<name>/{default.nix,hardware-configuration.nix}
       # and add <name> to this list.
-      nixosConfigurations = nixpkgs.lib.genAttrs [ "nixos" ] mkHost;
+      nixosConfigurations = nixpkgs.lib.genAttrs [
+        "nixos"
+        "hosaka"
+        "free-side"
+      ] mkHost;
 
       # `nix fmt` formats every .nix file except the generated hardware config
       formatter = forDevSystems (
