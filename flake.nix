@@ -29,16 +29,19 @@
       ];
       forDevSystems = f: nixpkgs.lib.genAttrs devSystems (system: f nixpkgs.legacyPackages.${system});
 
-      # A server is the shared modules plus everything in hosts/<name>/.
+      # A server is the shared modules, everything in hosts/<name>/, and the
+      # optional modules listed for it (a file from ./modules that not every
+      # server gets).
       mkHost =
-        name:
+        name: extraModules:
         nixpkgs.lib.nixosSystem {
           specialArgs = { inherit inputs; };
           modules = [
             { networking.hostName = name; }
             self.nixosModules.common
             ./hosts/${name}
-          ];
+          ]
+          ++ extraModules;
         };
     in
     {
@@ -46,12 +49,12 @@
       nixosModules.common = ./modules;
 
       # To add a server: create hosts/<name>/{default.nix,hardware-configuration.nix}
-      # and add <name> to this list.
-      nixosConfigurations = nixpkgs.lib.genAttrs [
-        "nixos"
-        "hosaka"
-        "free-side"
-      ] mkHost;
+      # and add <name> here with its optional modules (usually none).
+      nixosConfigurations = builtins.mapAttrs mkHost {
+        nixos = [ ];
+        hosaka = [ ./modules/wireguard.nix ];
+        free-side = [ ];
+      };
 
       # `nix fmt` formats every .nix file except the generated hardware config
       formatter = forDevSystems (
