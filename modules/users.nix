@@ -13,7 +13,11 @@ in
   users.users.bedwards = {
     isNormalUser = true;
     description = "Brian Edwards";
-    extraGroups = [ "networkmanager" "wheel" "docker" ];
+    extraGroups = [
+      "networkmanager"
+      "wheel"
+      "docker"
+    ];
     shell = pkgs.fish;
     openssh.authorizedKeys.keys = adminKeys;
   };
@@ -28,8 +32,15 @@ in
     openssh.authorizedKeys.keys = adminKeys;
   };
 
-  security.sudo.extraRules = [{
-    users = [ "ansible" ];
-    commands = [{ command = "ALL"; options = [ "NOPASSWD" ]; }];
-  }];
+  security.sudo.extraRules = [
+    {
+      users = [ "ansible" ];
+      commands = [
+        {
+          command = "ALL";
+          options = [ "NOPASSWD" ];
+        }
+      ];
+    }
+  ];
 }
