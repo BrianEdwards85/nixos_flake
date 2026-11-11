@@ -54,6 +54,7 @@
         nixos = [ ];
         hosaka = [ ./modules/wireguard.nix ];
         free-side = [ ];
+        angel = [ ];
       };
 
       # `nix fmt` formats every .nix file except the generated hardware config
