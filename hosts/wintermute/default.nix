@@ -86,6 +86,11 @@
   # are known, filtering Matter UDP by interface and never by port.
   networking.firewall.enable = false;
 
+  # TEMPORARY: a console login for the first boot, in case the network does not
+  # come up. Applies only when the user is first created. TODO: remove after
+  # the first successful SSH login, then rebuild.
+  users.users.bedwards.initialHashedPassword = "$y$j9T$.2t09nJNATU2KuGt8U7e4/$D.ERXCTf9nZnm4i9mEyWDbU70eC1K.RUwh3iUZL6L89";
+
   # Set once at install. Do NOT change it afterwards.
   system.stateVersion = "26.05";
 }
