@@ -1,7 +1,12 @@
 # Settings for this server only. Shared settings live in ../../modules.
 # The home server. Its DNS names are under free-side.us; the system's own
 # hostname is wintermute.
-{ inputs, lib, ... }:
+{
+  inputs,
+  lib,
+  pkgs,
+  ...
+}:
 
 {
   imports = [
@@ -18,12 +23,10 @@
     SUBSYSTEM=="net", ACTION=="add", ATTR{address}=="f8:b1:56:ba:64:77", NAME="lan0"
   '';
 
-  # Two static addresses, no DHCP. NetworkManager stays enabled (users.nix
-  # uses its group) but leaves both interfaces alone.
-  networking.networkmanager.unmanaged = [
-    "mac:f8:b1:56:ba:64:77"
-    "interface-name:vlan98"
-  ];
+  # Two static addresses, no DHCP, and no NetworkManager: nothing here needs
+  # it, and it can rewrite the DNS settings. users.nix still names its group.
+  networking.networkmanager.enable = lib.mkForce false;
+  users.groups.networkmanager = { };
   networking.useDHCP = false;
 
   # lan0 carries the untagged LAN (192.168.128.0/23). VLAN 98 is tagged on the
@@ -60,11 +63,28 @@
   # router (which tracks connections per interface) drops them. Anything sent
   # from 192.168.98.2 therefore uses its own routing table, whose default route
   # is the VLAN's gateway. Traffic from 192.168.128.2 is unaffected.
-  networking.localCommands = ''
-    ip route replace default via 192.168.98.1 dev vlan98 onlink table 98
-    ip rule del from 192.168.98.2 lookup 98 2>/dev/null || true
-    ip rule add from 192.168.98.2 lookup 98
-  '';
+  # A service of its own, not networking.localCommands: that script also writes
+  # the DNS servers, and stops at the first failing command.
+  systemd.services.vlan98-policy-routing = {
+    description = "Route replies from the VLAN 98 address out of vlan98";
+    wantedBy = [ "multi-user.target" ];
+    after = [ "network-addresses-vlan98.service" ];
+    wants = [ "network-addresses-vlan98.service" ];
+    path = [ pkgs.iproute2 ];
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+    };
+    script = ''
+      ip route replace default via 192.168.98.1 dev vlan98 onlink table 98
+      ip rule del from 192.168.98.2 lookup 98 2>/dev/null || true
+      ip rule add from 192.168.98.2 lookup 98
+    '';
+    preStop = ''
+      ip rule del from 192.168.98.2 lookup 98 2>/dev/null || true
+      ip route flush table 98 2>/dev/null || true
+    '';
+  };
 
   # Matter needs IPv6 (link-local multicast and neighbor discovery), so override
   # the shared module, which turns it off. Addresses come from router
