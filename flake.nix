@@ -53,8 +53,7 @@
       nixosConfigurations = builtins.mapAttrs mkHost {
         nixos = [ ];
         hosaka = [ ./modules/wireguard.nix ];
-        free-side = [ ];
-        angel = [ ];
+        wintermute = [ ];
       };
 
       # `nix fmt` formats every .nix file except the generated hardware config
@@ -76,3 +75,9 @@
       });
     };
 }
+
+#Command to fix sig
+#   cp --remove-destination "$(readlink -f /etc/nix/nix.conf)" /etc/nix/nix.conf &&
+#  echo "require-sigs = false" >> /etc/nix/nix.conf &&
+#  systemctl restart nix-daemon &&
+#  nix config show | grep require-sigs'
