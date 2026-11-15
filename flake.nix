@@ -10,6 +10,15 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    # MicroVMs: the terminal sandbox on wintermute (modules/microvm.nix).
+    microvm = {
+      url = "github:astro/microvm.nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    # The user's own home-manager configurations, which the sandbox VM reuses.
+    user-hm.url = "github:BrianEdwards85/nix_home_manager";
+
     # Disk partitioning for nixos-anywhere installs.
     disko = {
       url = "github:nix-community/disko";
@@ -53,7 +62,7 @@
       nixosConfigurations = builtins.mapAttrs mkHost {
         nixos = [ ];
         hosaka = [ ./modules/wireguard.nix ];
-        wintermute = [ ];
+        wintermute = [ ./modules/microvm.nix ];
       };
 
       # `nix fmt` formats every .nix file except the generated hardware config
