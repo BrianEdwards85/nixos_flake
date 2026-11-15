@@ -97,6 +97,11 @@
   boot.kernelModules = [ "nf_conntrack" ];
   boot.kernel.sysctl."net.netfilter.nf_conntrack_udp_timeout_stream" = 3600;
 
+  # dockerd's own metrics for Prometheus. On every address: the monitoring
+  # network does not exist yet when dockerd starts, so it cannot bind to its
+  # gateway. Read-only counters, but reachable from the LAN while the firewall is off.
+  virtualisation.docker.daemon.settings.metrics-addr = "0.0.0.0:9323";
+
   # The Matter server runs as uid/gid 1000 and pings devices to check they are
   # reachable; unprivileged ping is off by default.
   boot.kernel.sysctl."net.ipv4.ping_group_range" = "0 2147483647";
