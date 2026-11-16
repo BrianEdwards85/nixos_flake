@@ -110,7 +110,20 @@ in
               mountPoint = "/home";
               size = 20 * 1024;
             }
+            # where nix in the VM puts what it downloads or builds; the host's store stays read-only underneath
+            {
+              image = "nix-store-overlay.img";
+              mountPoint = "/nix/.rw-store";
+              size = 20 * 1024;
+            }
+            # nix's database, profiles and GC roots: without it, what is in the overlay is forgotten at every reboot
+            {
+              image = "nix-var.img";
+              mountPoint = "/nix/var";
+              size = 1024;
+            }
           ];
+          writableStoreOverlay = "/nix/.rw-store";
         };
 
         networking.useNetworkd = true;
@@ -122,6 +135,26 @@ in
           22
           webPort
         ];
+
+        nix.settings.experimental-features = [
+          "nix-command"
+          "flakes"
+        ];
+
+        # The database must be there before the system is started: the host's closure is registered in it
+        # at boot, and the system's own GC root is made in it, which keeps the running system safe from gc.
+        fileSystems."/nix/var".neededForBoot = true;
+
+        # Garbage collection: weekly, and whenever the overlay volume is nearly full
+        nix.gc = {
+          automatic = true;
+          dates = "weekly";
+          options = "--delete-older-than 14d";
+        };
+        nix.settings = {
+          min-free = 2 * 1024 * 1024 * 1024;
+          max-free = 8 * 1024 * 1024 * 1024;
+        };
 
         programs.fish.enable = true;
         users.users.bedwards = {
@@ -184,9 +217,20 @@ in
           description = "Zellij web client";
           wantedBy = [ "multi-user.target" ];
           after = [ "home-files.service" ];
+          # The panes start from this environment. The home-manager zellij config says default_shell "fish", a bare
+          # name, so fish and the user's other programs must be on the PATH; a service has only systemd's own.
+          path = [
+            hm.config.home.path
+            "/run/current-system/sw"
+          ];
+          environment = {
+            HOME = "/home/bedwards";
+            USER = "bedwards";
+            SHELL = "${pkgs.fish}/bin/fish";
+            LANG = "C.UTF-8";
+          };
           serviceConfig = {
             User = "bedwards";
-            Environment = [ "HOME=/home/bedwards" ];
             ExecStartPre = "${pkgs.coreutils}/bin/mkdir -p /home/bedwards/.config/zellij /home/bedwards/.local/share/zellij";
             ExecStart = "${pkgs.zellij}/bin/zellij web --start --ip 127.0.0.1 --port ${toString zellijPort}";
             Restart = "always";
