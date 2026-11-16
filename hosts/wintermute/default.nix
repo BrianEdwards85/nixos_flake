@@ -102,6 +102,9 @@
   # gateway. Read-only counters, but reachable from the LAN while the firewall is off.
   virtualisation.docker.daemon.settings.metrics-addr = "0.0.0.0:9323";
 
+  # chattr and lsattr, which the Postgres role uses to turn off copy-on-write on btrfs
+  environment.systemPackages = [ pkgs.e2fsprogs ];
+
   # The Matter server runs as uid/gid 1000 and pings devices to check they are
   # reachable; unprivileged ping is off by default.
   boot.kernel.sysctl."net.ipv4.ping_group_range" = "0 2147483647";
