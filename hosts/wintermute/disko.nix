@@ -1,6 +1,7 @@
-# Disk layout for the NEW disk only, applied by nixos-anywhere. The old disk is
-# deliberately not declared here, so nothing ever touches it (it stays as the
-# fallback system).
+# Disk layout for the SSD (the KingFast), applied by nixos-anywhere. The other disks are
+# deliberately not declared here, so nothing ever touches them. The disk's name below sets the
+# partition labels (disk-wintermute-ssd-*), which the system mounts by: they must differ from
+# the labels of any other disk in the machine (the WD Red has disk-wintermute-*).
 { ... }:
 
 let
@@ -11,11 +12,11 @@ let
   ];
 in
 {
-  disko.devices.disk.wintermute = {
+  disko.devices.disk.wintermute-ssd = {
     type = "disk";
     # Always by-id: sda/sdb can swap between boots, and a wrong guess would
     # format the old disk.
-    device = "/dev/disk/by-id/ata-WDC_WD20EFRX-68EUZN0_WD-WCC4M0KVF806";
+    device = "/dev/disk/by-id/ata-KingFast_E010172Y00060";
     content = {
       type = "gpt";
       partitions = {
