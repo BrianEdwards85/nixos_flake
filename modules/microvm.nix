@@ -3,7 +3,7 @@
 #   - the user's home-manager configuration (user-hm) provides the packages and dotfiles
 #   - SSH on the host's port 2222, and zellij's web client on the proxy network's gateway, port 9999
 #     (Traefik serves it as term.<domain> behind the login gate: roles/term in the Ansible repository)
-#   - /home is a 20 GB volume; the host's /home/bedwards/workspace is shared in as ~/workspace
+#   - /home is a 20 GB volume; the host's ~/workspace and ~/.config/home-manager are shared in (/mnt/<name>, linked into ~)
 #   - the host's Nix store is shared read-only: nothing is installed inside the VM
 { inputs, lib, ... }:
 
@@ -18,6 +18,11 @@ let
   # the packages and dotfiles of this home-manager configuration, as built for the VM's user
   hm = inputs.user-hm.homeConfigurations.wintermute;
 
+  shared = {
+    workspace = "workspace";
+    home-manager = ".config/home-manager";
+  };
+
   zellijPort = 8082;
   webPort = 9999;
 in
@@ -27,20 +32,26 @@ in
   # each VM's files are in /srv/microvm/<name>/
   microvm.stateDir = "/srv/microvm";
 
-  # The workspace is the user's directory on the host, bound under the VM's directory
-  fileSystems."/srv/microvm/term/workspace" = {
-    device = "/home/bedwards/workspace";
-    fsType = "none";
-    options = [
-      "bind"
-      "x-mount.mkdir"
-    ];
-  };
-  system.activationScripts.termWorkspace = {
+  # Directories of the user on the host that are shared into the VM. Each is bound under
+  # /srv/microvm/mnt/<name> (what virtiofs exports), appears as /mnt/<name> in the VM, and is
+  # linked from its usual place in the VM's home directory.
+  # `shared` maps name -> path relative to the home directory.
+  fileSystems = lib.mapAttrs' (
+    name: rel:
+    lib.nameValuePair "/srv/microvm/mnt/${name}" {
+      device = "/home/bedwards/${rel}";
+      fsType = "none";
+      options = [
+        "bind"
+        "x-mount.mkdir"
+      ];
+    }
+  ) shared;
+  system.activationScripts.termShared = {
     deps = [ "users" ];
-    text = ''
-      install -d -o bedwards -g users -m 0755 /home/bedwards/workspace
-    '';
+    text = lib.concatMapStringsSep "\n" (
+      rel: "install -d -o bedwards -g users -m 0755 /home/bedwards/${rel}"
+    ) (lib.attrValues shared);
   };
 
   # the VM's web port is published on the proxy network's gateway, which exists once Docker has made that network
@@ -97,13 +108,12 @@ in
               source = "/nix/store";
               mountPoint = "/nix/.ro-store";
             }
-            {
-              proto = "virtiofs";
-              tag = "workspace";
-              source = "/srv/microvm/term/workspace";
-              mountPoint = "/workspace";
-            }
-          ];
+          ] ++ lib.mapAttrsToList (name: _: {
+            proto = "virtiofs";
+            tag = name;
+            source = "/srv/microvm/mnt/${name}";
+            mountPoint = "/mnt/${name}";
+          }) shared;
           volumes = [
             {
               image = "home.img";
@@ -197,8 +207,8 @@ in
           "d /home/.ssh-host 0700 root root -"
           "d /home/bedwards 0700 bedwards users -"
           "d /run/zellij 0700 bedwards users -"
-          "L /home/bedwards/workspace - - - - /workspace"
-        ];
+          "d /home/bedwards/.config 0755 bedwards users -"
+        ] ++ lib.mapAttrsToList (name: rel: "L /home/bedwards/${rel} - - - - /mnt/${name}") shared;
 
         # the dotfiles of the home-manager configuration, linked into the home directory at every boot
         # (activating it would need a writable Nix store, which the VM does not have)
