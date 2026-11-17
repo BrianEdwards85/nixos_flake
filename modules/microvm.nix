@@ -156,6 +156,11 @@ in
           max-free = 8 * 1024 * 1024 * 1024;
         };
 
+        # One place for zellij's session sockets, for the web client (a service) and for SSH logins. Zellij
+        # otherwise keeps them under XDG_RUNTIME_DIR, which a login has and a service does not, so the two
+        # would never see each other's sessions.
+        environment.sessionVariables.ZELLIJ_SOCKET_DIR = "/run/zellij";
+
         programs.fish.enable = true;
         users.users.bedwards = {
           isNormalUser = true;
@@ -191,6 +196,7 @@ in
         systemd.tmpfiles.rules = [
           "d /home/.ssh-host 0700 root root -"
           "d /home/bedwards 0700 bedwards users -"
+          "d /run/zellij 0700 bedwards users -"
           "L /home/bedwards/workspace - - - - /workspace"
         ];
 
@@ -216,6 +222,7 @@ in
         systemd.services.zellij-web = {
           description = "Zellij web client";
           wantedBy = [ "multi-user.target" ];
+          # the same zellij as the one in the user's shell, which a session needs to attach
           after = [ "home-files.service" ];
           # The panes start from this environment. The home-manager zellij config says default_shell "fish", a bare
           # name, so fish and the user's other programs must be on the PATH; a service has only systemd's own.
@@ -226,13 +233,24 @@ in
           environment = {
             HOME = "/home/bedwards";
             USER = "bedwards";
-            SHELL = "${pkgs.fish}/bin/fish";
+            SHELL = "/run/current-system/sw/bin/fish";
             LANG = "C.UTF-8";
+            ZELLIJ_SOCKET_DIR = "/run/zellij";
+            # a service has no terminal, so its TERM would be "dumb", which the panes inherit; the web client is xterm.js
+            TERM = "xterm-256color";
+            COLORTERM = "truecolor";
           };
           serviceConfig = {
             User = "bedwards";
             ExecStartPre = "${pkgs.coreutils}/bin/mkdir -p /home/bedwards/.config/zellij /home/bedwards/.local/share/zellij";
-            ExecStart = "${pkgs.zellij}/bin/zellij web --start --ip 127.0.0.1 --port ${toString zellijPort}";
+            # What a login gives the shell, which a service does not get: NixOS's environment (PATH with the
+            # user's profiles, terminfo, locale, the session variables) and home-manager's own session
+            # variables. The panes inherit it, so fish there behaves as it does in an SSH login.
+            ExecStart = pkgs.writeShellScript "zellij-web-login-environment" ''
+              . /etc/set-environment
+              . ${hm.config.home.sessionVariablesPackage}/etc/profile.d/hm-session-vars.sh
+              exec ${hm.config.programs.zellij.package}/bin/zellij web --start --ip 127.0.0.1 --port ${toString zellijPort}
+            '';
             Restart = "always";
           };
         };
